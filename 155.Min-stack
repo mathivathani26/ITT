@@ -1,0 +1,45 @@
+typedef struct {
+    int* valStack;  
+    int* minStack; 
+    int top;        
+    int capacity;    
+} MinStack;
+MinStack* minStackCreate() {
+    int initialCapacity = 10000; 
+    MinStack* obj = (MinStack*)malloc(sizeof(MinStack));
+    obj->valStack = (int*)malloc(initialCapacity * sizeof(int));
+    obj->minStack = (int*)malloc(initialCapacity * sizeof(int));
+    obj->top = -1;
+    obj->capacity = initialCapacity;
+    return obj;
+}
+void minStackPush(MinStack* obj, int val) {
+    if (obj->top >= obj->capacity - 1) {
+        obj->capacity *= 2;
+        obj->valStack = (int*)realloc(obj->valStack, obj->capacity * sizeof(int));
+        obj->minStack = (int*)realloc(obj->minStack, obj->capacity * sizeof(int));
+    }
+    obj->top++;
+    obj->valStack[obj->top] = val;
+    if (obj->top == 0) {
+        obj->minStack[obj->top] = val;
+    } else {
+        obj->minStack[obj->top] = MIN(val, obj->minStack[obj->top - 1]);
+    }
+}
+void minStackPop(MinStack* obj) {
+    if (obj->top >= 0) {
+        obj->top--;
+    }
+}
+int minStackTop(MinStack* obj) {
+    return obj->valStack[obj->top];
+}
+int minStackGetMin(MinStack* obj) {
+    return obj->minStack[obj->top];
+}
+void minStackFree(MinStack* obj) {
+    free(obj->valStack);
+    free(obj->minStack);
+    free(obj);
+}
