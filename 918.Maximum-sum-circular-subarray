@@ -1,0 +1,30 @@
+#include <limits.h>
+int maxSubarraySumCircular(int* nums, int numsSize) {
+    int totalSum = 0;
+    int maxSum = INT_MIN;
+    int curMax = 0;
+    int minSum = INT_MAX;
+    int curMin = 0;
+    for (int i = 0; i < numsSize; i++) {
+        totalSum += nums[i];
+        curMax += nums[i];
+        if (curMax > maxSum) {
+            maxSum = curMax;
+        }
+        if (curMax < 0) {
+            curMax = 0;
+        }
+        curMin += nums[i];
+        if (curMin < minSum) {
+            minSum = curMin;
+        }
+        if (curMin > 0) {
+            curMin = 0;
+        }
+    }
+    if (maxSum < 0) {
+        return maxSum;
+    }
+    int circularSum = totalSum - minSum;
+    return (maxSum > circularSum) ? maxSum : circularSum;
+}
