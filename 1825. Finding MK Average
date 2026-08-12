@@ -1,0 +1,101 @@
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_VAL 100001
+
+typedef struct {
+    int* stream;        
+    int head;           
+    int m;              
+    int k;              
+    int count;          
+    long long total_sum;
+    
+    int bit_count[MAX_VAL];
+    long long bit_sum[MAX_VAL];
+} MKAverage;
+
+void bit_update(MKAverage* obj, int val, int delta) {
+    long long sum_delta = (long long)val * delta;
+    for (int i = val; i < MAX_VAL; i += i & -i) {
+        obj->bit_count[i] += delta;
+        obj->bit_sum[i] += sum_delta;
+    }
+}
+
+long long get_sum_of_smallest(MKAverage* obj, int count) {
+    if (count <= 0) return 0;
+    
+    int idx = 0;
+    int current_count = 0;
+    long long current_sum = 0;
+    
+    for (int i = 1 << 16; i > 0; i >>= 1) {
+        if (idx + i < MAX_VAL && current_count + obj->bit_count[idx + i] < count) {
+            idx += i;
+            current_count += obj->bit_count[idx];
+            current_sum += obj->bit_sum[idx];
+        }
+    }
+    
+    if (idx + 1 < MAX_VAL && current_count < count) {
+        int remaining = count - current_count;
+        current_sum += (long long)(idx + 1) * remaining;
+    }
+    
+    return current_sum;
+}
+
+MKAverage* mKAverageCreate(int m, int k) {
+    MKAverage* obj = (MKAverage*)malloc(sizeof(MKAverage));
+    obj->stream = (int*)malloc(m * sizeof(int));
+    obj->head = 0;
+    obj->m = m;
+    obj->k = k;
+    obj->count = 0;
+    obj->total_sum = 0;
+    memset(obj->bit_count, 0, sizeof(obj->bit_count));
+    memset(obj->bit_sum, 0, sizeof(obj->bit_sum));
+    return obj;
+}
+
+void mKAverageAddElement(MKAverage* obj, int num) {
+    if (obj->count < obj->m) {
+        obj->stream[obj->count] = num;
+        obj->total_sum += num;
+        bit_update(obj, num, 1);
+        obj->count++;
+    } else {
+        int oldest = obj->stream[obj->head];
+        obj->total_sum -= oldest;
+        bit_update(obj, oldest, -1);
+        
+        obj->stream[obj->head] = num;
+        obj->total_sum += num;
+        bit_update(obj, num, 1);
+        
+        obj->head = (obj->head + 1) % obj->m;
+    }
+}
+
+int mKAverageCalculateMKAverage(MKAverage* obj) {
+    if (obj->count < obj->m) {
+        return -1;
+    }
+    
+   
+    long long smallest_k_sum = get_sum_of_smallest(obj, obj->k);
+    long long smallest_m_minus_k_sum = get_sum_of_smallest(obj, obj->m - obj->k);
+    
+    long long middle_sum = smallest_m_minus_k_sum - smallest_k_sum;
+    int middle_elements_count = obj->m - 2 * obj->k;
+    
+    return middle_sum / middle_elements_count;
+}
+
+void mKAverageFree(MKAverage* obj) {
+    if (obj) {
+        free(obj->stream);
+        free(obj);
+    }
+}
