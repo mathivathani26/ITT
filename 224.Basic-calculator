@@ -1,0 +1,39 @@
+int calculate(char* s) {
+    int n = strlen(s);
+    if (n == 0) return 0;
+    int* stack = (int*)malloc(n * sizeof(int));
+    int top = -1;
+    int currentResult = 0;
+    int sign = 1; 
+    for (int i = 0; i < n; i++) {
+        char c = s[i];
+        if (isdigit(c)) {
+            long long num = 0; 
+            while (i < n && isdigit(s[i])) {
+                num = num * 10 + (s[i] - '0');
+                i++;
+            }
+            i--; 
+            currentResult += sign * num;
+        } 
+        else if (c == '+') {
+            sign = 1;
+        } 
+        else if (c == '-') {
+            sign = -1;
+        } 
+        else if (c == '(') {
+            stack[++top] = currentResult;
+            stack[++top] = sign;
+            currentResult = 0;
+            sign = 1;
+        } 
+        else if (c == ')') {
+            int prevSign = stack[top--];
+            int prevResult = stack[top--];
+            currentResult = prevResult + (prevSign * currentResult);
+        }
+    }
+    free(stack);
+    return currentResult;
+}
