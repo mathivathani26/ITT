@@ -1,0 +1,27 @@
+int shortestSubarray(int* nums, int numsSize, int k) {
+    long long* prefixSum = (long long*)malloc((numsSize + 1) * sizeof(long long));
+    prefixSum[0] = 0;
+    for (int i = 0; i < numsSize; i++) {
+        prefixSum[i + 1] = prefixSum[i] + nums[i];
+    }
+    int* deque = (int*)malloc((numsSize + 1) * sizeof(int));
+    int head = 0;
+    int tail = 0;
+    int minLength = numsSize + 1; 
+    for (int i = 0; i <= numsSize; i++) {
+        while (tail > head && prefixSum[i] - prefixSum[deque[head]] >= k) {
+            int currentLength = i - deque[head];
+            if (currentLength < minLength) {
+                minLength = currentLength;
+            }
+            head++; 
+        }
+        while (tail > head && prefixSum[i] <= prefixSum[deque[tail - 1]]) {
+            tail--; 
+        }
+        deque[tail++] = i;
+    }
+    free(prefixSum);
+    free(deque);
+    return (minLength <= numsSize) ? minLength : -1;
+}
