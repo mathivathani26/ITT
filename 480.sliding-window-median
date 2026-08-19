@@ -1,0 +1,179 @@
+typedef struct {
+    int key;
+    int count;
+} HashEntry;
+
+typedef struct {
+    HashEntry* entries;
+    int size;
+} HashMap;
+
+HashMap* createMap(int capacity) {
+    HashMap* map = (HashMap*)malloc(sizeof(HashMap));
+    map->entries = (HashEntry*)calloc(capacity, sizeof(HashEntry));
+    map->size = capacity;
+    return map;
+}
+
+int hash(int key, int size) {
+    long long k = key;
+    int idx = k % size;
+    if (idx < 0) idx += size;
+    return idx;
+}
+
+void mapInsert(HashMap* map, int key) {
+    int idx = hash(key, map->size);
+    while (map->entries[idx].count > 0 && map->entries[idx].key != key) {
+        idx = (idx + 1) % map->size;
+    }
+    map->entries[idx].key = key;
+    map->entries[idx].count++;
+}
+
+int mapGet(HashMap* map, int key) {
+    int idx = hash(key, map->size);
+    while (map->entries[idx].count > 0 || map->entries[idx].key != 0) {
+        if (map->entries[idx].key == key && map->entries[idx].count > 0) {
+            return map->entries[idx].count;
+        }
+        idx = (idx + 1) % map->size;
+        if (map->entries[idx].key == 0 && map->entries[idx].count == 0) break;
+    }
+    return 0;
+}
+
+void mapRemove(HashMap* map, int key) {
+    int idx = hash(key, map->size);
+    while (map->entries[idx].key != key) {
+        idx = (idx + 1) % map->size;
+    }
+    map->entries[idx].count--;
+}
+
+// UTILITY: Heap Implementations
+typedef struct {
+    int* data;
+    int size;
+    int isMinHeap;
+} Heap;
+
+Heap* createHeap(int capacity, int isMinHeap) {
+    Heap* heap = (Heap*)malloc(sizeof(Heap));
+    heap->data = (int*)malloc((capacity + 1) * sizeof(int));
+    heap->size = 0;
+    heap->isMinHeap = isMinHeap;
+    return heap;
+}
+
+int compare(int a, int b, int isMinHeap) {
+    if (isMinHeap) return a < b;
+    return a > b; // Max-Heap
+}
+
+void swap(int* a, int* b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+void push(Heap* heap, int val) {
+    heap->data[++heap->size] = val;
+    int i = heap->size;
+    while (i > 1 && compare(heap->data[i], heap->data[i / 2], heap->isMinHeap)) {
+        swap(&heap->data[i], &heap->data[i / 2]);
+        i /= 2;
+    }
+}
+
+void pop(Heap* heap) {
+    if (heap->size == 0) return;
+    heap->data[1] = heap->data[heap->size--];
+    int i = 1;
+    while (2 * i <= heap->size) {
+        int child = 2 * i;
+        if (child + 1 <= heap->size && compare(heap->data[child + 1], heap->data[child], heap->isMinHeap)) {
+            child++;
+        }
+        if (compare(heap->data[i], heap->data[child], heap->isMinHeap)) break;
+        swap(&heap->data[i], &heap->data[child]);
+        i = child;
+    }
+}
+
+int top(Heap* heap) {
+    return heap->data[1];
+}
+
+// Core Algorithm
+double* medianSlidingWindow(int* nums, int numsSize, int k, int* returnSize) {
+    *returnSize = numsSize - k + 1;
+    double* result = (double*)malloc((*returnSize) * sizeof(double));
+    
+    Heap* maxHeap = createHeap(numsSize, 0); // Stores smaller half
+    Heap* minHeap = createHeap(numsSize, 1); // Stores larger half
+    HashMap* delayed = createMap(numsSize * 2);
+
+    int maxHeapSize = 0, minHeapSize = 0;
+
+    void prune(Heap* heap, int* heapSize) {
+        while (heap->size > 0 && mapGet(delayed, top(heap)) > 0) {
+            mapRemove(delayed, top(heap));
+            pop(heap);
+            (*heapSize)--;
+        }
+    }
+
+    for (int i = 0; i < k; i++) {
+        push(maxHeap, nums[i]);
+        maxHeapSize++;
+    }
+    for (int i = 0; i < k / 2; i++) {
+        push(minHeap, top(maxHeap));
+        pop(maxHeap);
+        maxHeapSize--;
+        minHeapSize++;
+    }
+
+    result[0] = (k % 2 == 1) ? top(maxHeap) : ((double)top(maxHeap) + top(minHeap)) / 2.0;
+
+    for (int i = k; i < numsSize; i++) {
+        int outNum = nums[i - k];
+        int inNum = nums[i];
+        int balance = 0;
+
+        balance += (outNum <= top(maxHeap)) ? -1 : 1;
+        mapInsert(delayed, outNum);
+        prune(maxHeap, &maxHeapSize);
+        prune(minHeap, &minHeapSize);
+
+        if (maxHeap->size > 0 && inNum <= top(maxHeap)) {
+            push(maxHeap, inNum);
+            maxHeapSize++;
+            balance++;
+        } else {
+            push(minHeap, inNum);
+            minHeapSize++;
+            balance--;
+        }
+        if (balance < 0) {
+            push(maxHeap, top(minHeap));
+            pop(minHeap);
+            minHeapSize--;
+            maxHeapSize++;
+        } else if (balance > 0) {
+            push(minHeap, top(maxHeap));
+            pop(maxHeap);
+            maxHeapSize--;
+            minHeapSize++;
+        }
+        prune(maxHeap, &maxHeapSize);
+        prune(minHeap, &minHeapSize);
+
+        result[i - k + 1] = (k % 2 == 1) ? top(maxHeap) : ((double)top(maxHeap) + top(minHeap)) / 2.0;
+    }
+    free(maxHeap->data); free(maxHeap);
+    free(minHeap->data); free(minHeap);
+    free(delayed->entries); free(delayed);
+    return result;
+}
