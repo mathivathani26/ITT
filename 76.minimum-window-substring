@@ -1,0 +1,39 @@
+class Solution {
+public:
+    string minWindow(string s, string t) {
+        if (s.length() < t.length()) return "";
+        vector<int> tFreq(128, 0);
+        vector<int> windowFreq(128, 0);
+        for (char c : t) {
+            tFreq[c]++;
+        }
+        int required = 0;
+        for (int count : tFreq) {
+            if (count > 0) required++;
+        }
+        int formed = 0;
+        int left = 0;
+        int minLen = INT_MAX;
+        int minLeft = 0;
+        for (int right = 0; right < s.length(); ++right) {
+            char c = s[right];
+            windowFreq[c]++;
+            if (tFreq[c] > 0 && windowFreq[c] == tFreq[c]) {
+                formed++;
+            }
+            while (formed == required) {
+                if (right - left + 1 < minLen) {
+                    minLen = right - left + 1;
+                    minLeft = left;
+                }
+                char leftChar = s[left];
+                windowFreq[leftChar]--;
+                if (tFreq[leftChar] > 0 && windowFreq[leftChar] < tFreq[leftChar]) {
+                    formed--;
+                }
+                left++;
+            }
+        }
+        return minLen == INT_MAX ? "" : s.substr(minLeft, minLen);
+    }
+};
